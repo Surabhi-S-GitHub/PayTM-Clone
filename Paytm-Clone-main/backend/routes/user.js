@@ -10,14 +10,14 @@ const saltRounds = 10;
 
 // 🛡️ Zod Schemas
 const signupSchema = zod.object({
-    username: zod.string().email(),
+    username: zod.string().min(3),       // ✅ changed from email to username
     password: zod.string().min(6),
     firstName: zod.string(),
     lastName: zod.string()
 });
 
 const signinSchema = zod.object({
-    username: zod.string().email(),
+    username: zod.string().min(3),       // ✅ username expected, not email
     password: zod.string().min(6)
 });
 
