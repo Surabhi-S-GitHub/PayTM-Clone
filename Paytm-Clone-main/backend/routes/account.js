@@ -24,47 +24,53 @@ router.get('/balance', authMiddleware, async (req, res) => {
 
 // 💸 POST /transfer - Send money to another user
 router.post('/transfer', authMiddleware, async (req, res) => {
-  const { amount, to } = req.body;
+    const session = await mongoose.startSession();
+    try {
+        session.startTransaction();
+        const { amount, to, pin } = req.body;
 
-  if (!amount || !to) {
-    return res.status(400).json({ msg: "Missing amount or recipient ID" });
-  }
+        const user = await User.findById(req.userId).session(session);
+        if (!user) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ message: "User not found" });
+        }
 
-  try {
-    const senderAccount = await Account.findOne({ userId: req.userId });
-    const receiverAccount = await Account.findOne({ userId: to });
+        const isPinCorrect = await bcrypt.compare(pin, user.pin);
+        if (!isPinCorrect) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(403).json({ message: "Incorrect PIN" });
+        }
 
-    if (!senderAccount || senderAccount.balance < amount) {
-      return res.status(400).json({ msg: "Insufficient balance" });
+        const account = await Account.findOne({ userId: req.userId }).session(session);
+        if (!account || account.balance < amount) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: "Insufficient balance" });
+        }
+
+        const toAccount = await Account.findOne({ userId: to }).session(session);
+        if (!toAccount) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: "Recipient account not found" });
+        }
+
+        await Account.updateOne({ userId: req.userId }, { $inc: { balance: -amount } }).session(session);
+        await Account.updateOne({ userId: to }, { $inc: { balance: amount } }).session(session);
+
+        await session.commitTransaction();
+        res.json({ message: "Transfer successful" });
+    } catch (error) {
+        await session.abortTransaction();
+        res.status(500).json({ message: "Internal server error" });
+    } finally {
+        session.endSession();
     }
-
-    if (!receiverAccount) {
-      return res.status(400).json({ msg: "Invalid recipient" });
-    }
-
-    // ⬇️ Deduct from sender
-    senderAccount.balance -= amount;
-    await senderAccount.save();
-
-    // ⬆️ Add to receiver
-    receiverAccount.balance += amount;
-    await receiverAccount.save();
-
-    const senderUser = await User.findOne({ _id: req.userId });
-
-    res.status(200).json({
-      msg: "Transfer successful",
-      newAmount: senderAccount.balance,
-      userName: senderUser.firstName || "User"
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Internal server error" });
-  }
 });
 
-module.exports = router;
+
 
 
 module.exports = router;

@@ -1,5 +1,3 @@
-
-// eslint-disable-next-line react/prop-types
 export const AppBar = ({label})=>{
     return <div className="shadow h-14 flex justify-between border m-4 rounded-3xl border-slate-300">
         <div className="flex flex-col justify-center h-full ml-4">

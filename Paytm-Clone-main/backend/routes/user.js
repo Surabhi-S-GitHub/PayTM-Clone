@@ -9,6 +9,10 @@ const authMiddleware = require('../middleware');
 const saltRounds = 10;
 
 // 🛡️ Zod Schemas
+const mongoose = require("mongoose");
+
+
+
 const signupSchema = zod.object({
     username: zod.string().min(3),       // ✅ changed from email to username
     password: zod.string().min(6),
