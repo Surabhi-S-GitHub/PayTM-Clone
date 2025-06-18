@@ -12,7 +12,45 @@ export const SignUp = () => {
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const navigate = useNavigate();
+
+  const handleSignUp = async () => {
+    if (pin.length !== 6 || isNaN(pin)) {
+      alert("PIN must be a 6-digit number");
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      alert("PIN and Confirm PIN do not match");
+      return;
+    }
+
+    try {
+      const response = await Axios.post("http://localhost:3000/api/v1/user/signup", {
+  username,
+  firstName,
+  lastName,
+  password,
+  pin,
+  retypePin: confirmPin
+}, {
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+
+      const amount = response.data.initialAmount; 
+      localStorage.setItem('token', response.data.token);
+
+      navigate(`/dashboard?amount=${amount}&firstName=${username[0].toUpperCase()}`);
+    } catch (error) {
+      alert("Signup failed: " + (error.response?.data?.msg || error.message));
+      console.error(error);
+    }
+  };
 
   return (
     <div className="bg-slate-300 h-screen flex justify-center">
@@ -21,68 +59,18 @@ export const SignUp = () => {
           <Heading label={"Sign Up"} />
           <SubHeading label={"Enter your information to create an account"} />
           
-          <InputBox
-            placeholder='Surabhi'
-            label={'First Name'}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-          <InputBox
-            placeholder='S'
-            label={'Last Name'}
-            onChange={(e) => setLastName(e.target.value)}
-          />
-          <InputBox
-            placeholder='surabhi@gmail.com'
-            label={'Email'}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <InputBox
-            placeholder='123456'
-            label={'Password'}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <InputBox placeholder='Surabhi' label={'First Name'} onChange={(e) => setFirstName(e.target.value)} />
+          <InputBox placeholder='S' label={'Last Name'} onChange={(e) => setLastName(e.target.value)} />
+          <InputBox placeholder='surabhi@gmail.com' label={'Email'} onChange={(e) => setUsername(e.target.value)} />
+          <InputBox placeholder='123456' label={'Password'} type='password' onChange={(e) => setPassword(e.target.value)} />
+          <InputBox placeholder='6-digit PIN' label={'PIN'} type='password' onChange={(e) => setPin(e.target.value)} />
+          <InputBox placeholder='Confirm 6-digit PIN' label={'Confirm PIN'} type='password' onChange={(e) => setConfirmPin(e.target.value)} />
 
           <div className='pt-4'>
-            <Button
-              onClick={async () => {
-                try {
-                  const response = await Axios.post("http://localhost:3000/api/v1/user/signup", {
-                    username,
-                    firstName,
-                    lastName,
-                    password
-                  }, {
-                    headers: {
-                      'Content-Type': 'application/json'
-                    }
-                  });
-
-                  const amount = response.data.initialAmount; 
-                  localStorage.setItem('token', response.data.token);
-
-                  navigate(`/dashboard?amount=${amount}&firstName=${username[0].toUpperCase()}`);
-                } catch (error) {
-                  if (
-                    error.response &&
-                    error.response.data &&
-                    error.response.data.message
-                  ) {
-                    alert("Signup failed: " + error.response.data.message);
-                  } else {
-                    alert("Signup failed: " + error.message);
-                  }
-                  console.error(error);
-                }
-              }}
-              label={"Sign Up"}
-            />
+            <Button onClick={handleSignUp} label={"Sign Up"} />
           </div>
 
-          <BottomWarning
-            label={"Already have an account?"}
-            buttonText={"Sign in"}
-            to={"/signin"}
-          />
+          <BottomWarning label={"Already have an account?"} buttonText={"Sign in"} to={"/signin"} />
         </div>
       </div>
     </div>
